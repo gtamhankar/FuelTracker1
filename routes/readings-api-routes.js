@@ -1,4 +1,7 @@
+require('dotenv').config();
 var db = require("../models");
+var multer = require('multer');
+var path = require('path');
 
 module.exports = function(app) {
     
@@ -98,17 +101,6 @@ module.exports = function(app) {
             
         });
     });
-
-    app.post("/api/image", function(req, res) {
-        res.json({
-          id: 0,
-          place: "Joe's Gas @ 123 Fake St",
-          date: "2019-01-03",
-          gallons: 9.142,
-          price: 26.32,
-          perGallon: 2.879
-        });
-      });
       
        app.get("/api/pricePerGallon", function(req, res) {
         db.Reading.findAll({           
@@ -156,6 +148,58 @@ app.get("/api/expensePerMonth", function(req, res) {
         res.json(dbReadings);		
   });
 });
+
+  // Init Upload
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    //limits:{fileSize: 1500000},
+    fileFilter: function(req, file, cb){
+      checkFileType(file, cb);
+    }
+  }).single('myImage');
+
+  // Check File Type
+  function checkFileType(file, cb){
+    // Allowed ext
+    const filetypes = /jpeg|jpg|png|gif/;
+    // Check ext
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+    // Check mime
+    const mimetype = filetypes.test(file.mimetype);
+
+    if(mimetype && extname){
+      return cb(null,true);
+    } else {
+      cb('Error: Images Only!');
+    }
+  }
+
+  app.post('/api/image', (req, res) => {
+    upload(req, res, async (error) => {
+      if(error){
+        console.log(error);
+        res.json({ error })
+      } 
+      else {
+        if(req.file == undefined){
+          res.json({ error: "No file present" })
+        } else {
+          console.log('Requesting OCR...')
+
+          let ocr = await require('../fetchOCR')(req.file.buffer)
+
+          console.log('Response received')
+
+          if (!ocr) { res.json({}); return }
+
+          let parsed = require('../parseReceipt')(ocr.string),
+              place = await require('../fetchPlace')(ocr)
+
+          res.json(Object.assign( place ? { place } : {}, ...parsed))
+        }
+      }
+    });
+  });
 
 
 }

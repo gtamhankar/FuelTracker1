@@ -1,12 +1,13 @@
 $(function() {
 
         var editId;
+        var file;
     
         $(".file-field :input").change(function(e) {
 
     for (var i = 0; i < e.originalEvent.srcElement.files.length; i++) {
 
-        var file = e.originalEvent.srcElement.files[i];
+        file = e.originalEvent.srcElement.files[i];
         console.log(file);
 
         var img = document.createElement("img");
@@ -25,6 +26,41 @@ $(function() {
         
         }
     });
+
+    $("#receiptPic").on('submit', function(event) {
+      console.log(file)
+      event.preventDefault();
+      if (!file) return;
+
+      const xhr = new XMLHttpRequest();
+      const fd = new FormData();
+      
+      xhr.open("POST", "/api/image", true);
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState == 4 && xhr.status == 200) {
+          console.log(JSON.parse(xhr.responseText))
+          var data = JSON.parse(xhr.responseText);
+
+          var fields = [['place'],
+                        ['address'],
+                        ['gallons'],
+                        ['price', 'total'],
+                        ['perGallon']];
+
+          fields.forEach(([key, id = key]) => {
+            var value = data[key];
+            var el = $('#' + id);
+
+            el.css("visibility", "visible");
+            if (value) el.val(value);
+          })
+        }
+      };
+      fd.append('myImage', file);
+      // Initiate a multipart/form-data upload
+      xhr.send(fd);
+      file = null;
+    })
 
     $("#add-btn").on('click', function(event) {
         event.preventDefault();
