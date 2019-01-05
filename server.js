@@ -2,7 +2,7 @@ const express = require('express');
 const app = express();
 const multer = require('multer');
 var db = require("./models");
-var PORT = process.env.PORT || 8000;
+var PORT = process.env.PORT || 3000;
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
